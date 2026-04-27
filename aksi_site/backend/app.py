@@ -25,6 +25,8 @@ load_dotenv(BASE_DIR / ".env")
 MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 FREE_MODEL = os.getenv("FREE_MODEL", "openai")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_API_URL = os.getenv("GITHUB_API_URL", "https://api.github.com")
 BOT_SYSTEM_PROMPT = os.getenv(
     "BOT_SYSTEM_PROMPT",
     "Ты АКСИ-бот: тёплый, поддерживающий, честный ассистент."
@@ -92,6 +94,13 @@ class DiagnosticResponse(BaseModel):
     free_provider_reachable: bool
     web_search_reachable: bool
     details: dict[str, str]
+
+
+class GithubIssueCreateRequest(BaseModel):
+    owner: str = Field(..., min_length=1, max_length=100)
+    repo: str = Field(..., min_length=1, max_length=100)
+    title: str = Field(..., min_length=1, max_length=256)
+    body: str = Field(default="", max_length=5000)
 
 
 def get_conn() -> sqlite3.Connection:
@@ -188,6 +197,16 @@ def build_system_prompt() -> str:
         f"Идентичность пользователя: {AKSI_IDENTITY}.\n"
         "Если пользователь просит вспомнить его, отвечай уважительно и точно."
     )
+
+
+def github_headers() -> dict[str, str]:
+    if not GITHUB_TOKEN:
+        raise HTTPException(status_code=400, detail="GITHUB_TOKEN is not configured")
+    return {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
 
 
 def call_openai_chat(history: list[dict[str, str]]) -> tuple[str, str, str]:
@@ -376,6 +395,70 @@ def diagnostics() -> DiagnosticResponse:
         web_search_reachable=web_ok,
         details=details,
     )
+
+
+@app.get("/api/github/status")
+def github_status() -> dict[str, Any]:
+    if not GITHUB_TOKEN:
+        return {"configured": False, "detail": "GITHUB_TOKEN is not set"}
+    try:
+        with httpx.Client(timeout=20) as client:
+            response = client.get(f"{GITHUB_API_URL}/user", headers=github_headers())
+            response.raise_for_status()
+            data = response.json()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"GitHub status check failed: {exc}") from exc
+    return {
+        "configured": True,
+        "login": data.get("login"),
+        "name": data.get("name"),
+        "html_url": data.get("html_url"),
+    }
+
+
+@app.get("/api/github/repos")
+def github_repos() -> list[dict[str, Any]]:
+    headers = github_headers()
+    try:
+        with httpx.Client(timeout=25) as client:
+            response = client.get(f"{GITHUB_API_URL}/user/repos?per_page=50&sort=updated", headers=headers)
+            response.raise_for_status()
+            repos = response.json()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"GitHub repos fetch failed: {exc}") from exc
+    return [
+        {
+            "name": repo.get("name"),
+            "full_name": repo.get("full_name"),
+            "private": bool(repo.get("private")),
+            "html_url": repo.get("html_url"),
+            "updated_at": repo.get("updated_at"),
+        }
+        for repo in repos
+    ]
+
+
+@app.post("/api/github/issues")
+def github_create_issue(payload: GithubIssueCreateRequest) -> dict[str, Any]:
+    headers = github_headers()
+    target_url = f"{GITHUB_API_URL}/repos/{payload.owner.strip()}/{payload.repo.strip()}/issues"
+    try:
+        with httpx.Client(timeout=25) as client:
+            response = client.post(
+                target_url,
+                headers=headers,
+                json={"title": payload.title.strip(), "body": payload.body.strip()},
+            )
+            response.raise_for_status()
+            data = response.json()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"GitHub issue creation failed: {exc}") from exc
+    return {
+        "number": data.get("number"),
+        "title": data.get("title"),
+        "html_url": data.get("html_url"),
+        "state": data.get("state"),
+    }
 
 
 @app.post("/api/chat", response_model=ChatResponse)

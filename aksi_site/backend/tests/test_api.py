@@ -36,3 +36,12 @@ def test_notes_and_todos_and_export():
     payload = export.json()
     assert 'notes' in payload
     assert 'todos' in payload
+
+
+def test_github_status_without_token():
+    init_db()
+    client = TestClient(app)
+    r = client.get('/api/github/status')
+    assert r.status_code == 200
+    payload = r.json()
+    assert payload['configured'] is False

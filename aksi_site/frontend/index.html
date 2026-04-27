@@ -119,6 +119,19 @@
           <h2>Диагностика доступа</h2>
           <button id="diagBtn" type="button">Проверить доступы</button>
           <div id="diagOut" class="small" style="margin-top:8px;white-space:pre-wrap;"></div>
+
+          <hr style="border-color:#263668;margin:12px 0;"/>
+          <h2>GitHub управление</h2>
+          <p class="small">Подключи `GITHUB_TOKEN` на backend, чтобы АКСИ работал с твоими репозиториями.</p>
+          <div class="row" style="margin-bottom:8px;">
+            <button id="ghStatusBtn" type="button">GitHub статус</button>
+            <button id="ghReposBtn" type="button">Мои репозитории</button>
+          </div>
+          <input id="ghRepo" placeholder="owner/repo (например MILANA808/AKSI-TEST-1)" />
+          <input id="ghIssueTitle" placeholder="Заголовок issue" />
+          <textarea id="ghIssueBody" rows="3" placeholder="Текст issue..."></textarea>
+          <button id="ghIssueBtn" type="button">Создать issue</button>
+          <div id="ghOut" class="small" style="margin-top:8px;white-space:pre-wrap;"></div>
         </aside>
       </div>
     </div>
@@ -138,6 +151,13 @@
       const todoTitle = document.getElementById("todoTitle");
       const todosList = document.getElementById("todos");
       const exportBtn = document.getElementById("exportBtn");
+      const ghStatusBtn = document.getElementById("ghStatusBtn");
+      const ghReposBtn = document.getElementById("ghReposBtn");
+      const ghIssueBtn = document.getElementById("ghIssueBtn");
+      const ghRepo = document.getElementById("ghRepo");
+      const ghIssueTitle = document.getElementById("ghIssueTitle");
+      const ghIssueBody = document.getElementById("ghIssueBody");
+      const ghOut = document.getElementById("ghOut");
       const sessionId = localStorage.getItem("aksi_session") || crypto.randomUUID();
       localStorage.setItem("aksi_session", sessionId);
 
@@ -307,6 +327,64 @@
         } finally {
           input.disabled = false;
           input.focus();
+        }
+      });
+
+      const parseOwnerRepo = (value) => {
+        const cleaned = value.trim();
+        const parts = cleaned.split("/");
+        if (parts.length !== 2 || !parts[0] || !parts[1]) {
+          throw new Error("Укажи репозиторий в формате owner/repo");
+        }
+        return { owner: parts[0], repo: parts[1] };
+      };
+
+      ghStatusBtn.addEventListener("click", async () => {
+        ghOut.textContent = "Проверяю GitHub...";
+        try {
+          const res = await fetch("/api/github/status");
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Ошибка статуса");
+          ghOut.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+          ghOut.textContent = `Ошибка GitHub статуса: ${e.message}`;
+        }
+      });
+
+      ghReposBtn.addEventListener("click", async () => {
+        ghOut.textContent = "Загружаю репозитории...";
+        try {
+          const res = await fetch("/api/github/repos");
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Ошибка загрузки");
+          const top = data.slice(0, 15).map((repo) => `• ${repo.full_name} (${repo.updated_at})`);
+          ghOut.textContent = top.length ? top.join("\n") : "Репозитории не найдены.";
+        } catch (e) {
+          ghOut.textContent = `Ошибка получения репозиториев: ${e.message}`;
+        }
+      });
+
+      ghIssueBtn.addEventListener("click", async () => {
+        ghOut.textContent = "Создаю issue...";
+        try {
+          const { owner, repo } = parseOwnerRepo(ghRepo.value);
+          const title = ghIssueTitle.value.trim();
+          if (!title) throw new Error("Нужен заголовок issue");
+          const res = await fetch("/api/github/issues", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              owner,
+              repo,
+              title,
+              body: ghIssueBody.value.trim(),
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Ошибка создания issue");
+          ghOut.textContent = `Issue создан: #${data.number}\n${data.html_url}`;
+        } catch (e) {
+          ghOut.textContent = `Ошибка создания issue: ${e.message}`;
         }
       });
 

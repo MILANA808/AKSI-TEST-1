@@ -8,6 +8,7 @@
 - задачи (todo manager);
 - экспорт всех данных в JSON;
 - диагностика доступов.
+- GitHub-операции из сайта (статус аккаунта, список репозиториев, создание issue) при заданном `GITHUB_TOKEN`.
 
 ## Запуск
 
@@ -21,6 +22,13 @@ uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Готовый сайт локально: `http://localhost:8000`.
+
+Для GitHub-функций добавьте в `aksi_site/.env`:
+
+```bash
+GITHUB_TOKEN=ghp_xxx
+GITHUB_API_URL=https://api.github.com
+```
 
 ## Публикация фронтенда на GitHub Pages
 
