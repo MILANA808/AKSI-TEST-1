@@ -10,6 +10,7 @@
 - Todos: `GET/POST/PATCH/DELETE /api/todos`.
 - Export: `GET /api/export` (все данные в JSON).
 - Diagnostics: `GET /api/diagnostics`.
+- Безопасный рендер заметок и задач на фронтенде через `textContent` (без вставки пользовательских данных в `innerHTML`).
 
 ## Запуск
 

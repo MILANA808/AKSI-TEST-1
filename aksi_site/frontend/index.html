@@ -181,7 +181,6 @@
         deleteButton.addEventListener("click", async () => {
           await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
           loadNotes();
-      loadTodos();
         });
         notesList.appendChild(li);
       };
@@ -196,16 +195,33 @@
 
       const renderTodo = (todo) => {
         const li = document.createElement("li");
-        li.innerHTML = `
-          <div class="row">
-            <label style="display:flex;gap:8px;align-items:center;">
-              <input type="checkbox" ${todo.done ? "checked" : ""} />
-              <span style="${todo.done ? "text-decoration:line-through;opacity:.75;" : ""}">${todo.title}</span>
-            </label>
-            <button data-id="${todo.id}">Удалить</button>
-          </div>
-        `;
-        const checkbox = li.querySelector("input[type='checkbox']");
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const label = document.createElement("label");
+        label.style.display = "flex";
+        label.style.gap = "8px";
+        label.style.alignItems = "center";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = Boolean(todo.done);
+
+        const title = document.createElement("span");
+        title.textContent = todo.title;
+        if (todo.done) {
+          title.style.textDecoration = "line-through";
+          title.style.opacity = ".75";
+        }
+
+        const deleteButton = document.createElement("button");
+        deleteButton.dataset.id = todo.id;
+        deleteButton.textContent = "Удалить";
+
+        label.append(checkbox, title);
+        row.append(label, deleteButton);
+        li.appendChild(row);
+
         checkbox.addEventListener("change", async () => {
           await fetch(`/api/todos/${todo.id}`, {
             method: "PATCH",
@@ -214,7 +230,7 @@
           });
           loadTodos();
         });
-        li.querySelector("button").addEventListener("click", async () => {
+        deleteButton.addEventListener("click", async () => {
           await fetch(`/api/todos/${todo.id}`, { method: "DELETE" });
           loadTodos();
         });

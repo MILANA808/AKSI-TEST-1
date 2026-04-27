@@ -21,3 +21,11 @@ uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Готовый сайт локально: `http://localhost:8000`.
+
+## Публикация фронтенда на GitHub Pages
+
+Добавлен workflow `.github/workflows/deploy-pages.yml`, который автоматически публикует `aksi_site/frontend/index.html` на GitHub Pages после push.
+
+Ожидаемая ссылка после включения Pages в репозитории:
+
+- `https://milana808.github.io/AKSI-TEST-1/`
