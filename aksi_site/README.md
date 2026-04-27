@@ -14,6 +14,8 @@
   - `GET /api/github/status`;
   - `GET /api/github/repos`;
   - `POST /api/github/issues`.
+  - `POST /api/github/pulls`;
+  - `POST /api/github/file`.
 - Безопасный рендер заметок и задач на фронтенде через `textContent` (без вставки пользовательских данных в `innerHTML`).
 
 ## Запуск
@@ -41,7 +43,9 @@ GITHUB_API_URL=https://api.github.com
 После этого в правой панели сайта станут доступны:
 - проверка аккаунта GitHub;
 - список репозиториев;
-- создание issue в формате `owner/repo`.
+- создание issue в формате `owner/repo`;
+- просмотр открытых pull requests;
+- создание/обновление файлов в репозитории (commit через GitHub API).
 
 ## Тесты
 

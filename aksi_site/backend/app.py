@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import os
 import sqlite3
 from datetime import datetime, timezone
@@ -101,6 +102,20 @@ class GithubIssueCreateRequest(BaseModel):
     repo: str = Field(..., min_length=1, max_length=100)
     title: str = Field(..., min_length=1, max_length=256)
     body: str = Field(default="", max_length=5000)
+
+
+class GithubRepoRequest(BaseModel):
+    owner: str = Field(..., min_length=1, max_length=100)
+    repo: str = Field(..., min_length=1, max_length=100)
+
+
+class GithubFileUpsertRequest(BaseModel):
+    owner: str = Field(..., min_length=1, max_length=100)
+    repo: str = Field(..., min_length=1, max_length=100)
+    path: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., max_length=50000)
+    message: str = Field(..., min_length=1, max_length=200)
+    branch: str = Field(default="main", min_length=1, max_length=100)
 
 
 def get_conn() -> sqlite3.Connection:
@@ -207,6 +222,13 @@ def github_headers() -> dict[str, str]:
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
+
+
+def fetch_github_json(url: str, headers: dict[str, str]) -> Any:
+    with httpx.Client(timeout=30) as client:
+        response = client.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
 
 
 def call_openai_chat(history: list[dict[str, str]]) -> tuple[str, str, str]:
@@ -458,6 +480,72 @@ def github_create_issue(payload: GithubIssueCreateRequest) -> dict[str, Any]:
         "title": data.get("title"),
         "html_url": data.get("html_url"),
         "state": data.get("state"),
+    }
+
+
+@app.post("/api/github/pulls")
+def github_list_pulls(payload: GithubRepoRequest) -> list[dict[str, Any]]:
+    headers = github_headers()
+    target_url = f"{GITHUB_API_URL}/repos/{payload.owner.strip()}/{payload.repo.strip()}/pulls?state=open&per_page=30"
+    try:
+        pulls = fetch_github_json(target_url, headers)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"GitHub pulls fetch failed: {exc}") from exc
+    return [
+        {
+            "number": pull.get("number"),
+            "title": pull.get("title"),
+            "html_url": pull.get("html_url"),
+            "state": pull.get("state"),
+            "user": (pull.get("user") or {}).get("login"),
+        }
+        for pull in pulls
+    ]
+
+
+@app.post("/api/github/file")
+def github_upsert_file(payload: GithubFileUpsertRequest) -> dict[str, Any]:
+    headers = github_headers()
+    owner = payload.owner.strip()
+    repo = payload.repo.strip()
+    path = payload.path.strip().lstrip("/")
+    branch = payload.branch.strip()
+
+    target_url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/contents/{path}"
+    sha: str | None = None
+    try:
+        with httpx.Client(timeout=30) as client:
+            existing = client.get(f"{target_url}?ref={branch}", headers=headers)
+            if existing.status_code == 200:
+                sha = existing.json().get("sha")
+            elif existing.status_code not in (404,):
+                existing.raise_for_status()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"GitHub file precheck failed: {exc}") from exc
+
+    body: dict[str, Any] = {
+        "message": payload.message.strip(),
+        "content": base64.b64encode(payload.content.encode("utf-8")).decode("ascii"),
+        "branch": branch,
+    }
+    if sha:
+        body["sha"] = sha
+
+    try:
+        with httpx.Client(timeout=30) as client:
+            response = client.put(target_url, headers=headers, json=body)
+            response.raise_for_status()
+            data = response.json()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"GitHub file upsert failed: {exc}") from exc
+
+    content_info = data.get("content") or {}
+    commit_info = data.get("commit") or {}
+    return {
+        "path": content_info.get("path"),
+        "sha": content_info.get("sha"),
+        "commit_sha": commit_info.get("sha"),
+        "commit_url": commit_info.get("html_url"),
     }
 
 

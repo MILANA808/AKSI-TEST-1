@@ -126,11 +126,19 @@
           <div class="row" style="margin-bottom:8px;">
             <button id="ghStatusBtn" type="button">GitHub статус</button>
             <button id="ghReposBtn" type="button">Мои репозитории</button>
+            <button id="ghPullsBtn" type="button">Открытые PR</button>
           </div>
           <input id="ghRepo" placeholder="owner/repo (например MILANA808/AKSI-TEST-1)" />
           <input id="ghIssueTitle" placeholder="Заголовок issue" />
           <textarea id="ghIssueBody" rows="3" placeholder="Текст issue..."></textarea>
           <button id="ghIssueBtn" type="button">Создать issue</button>
+          <hr style="border-color:#263668;margin:12px 0;"/>
+          <h2>GitHub файловый режим</h2>
+          <input id="ghFilePath" placeholder="Путь файла (например notes/today.md)" />
+          <input id="ghFileBranch" placeholder="Ветка (по умолчанию main)" value="main" />
+          <input id="ghFileMessage" placeholder="Commit message" />
+          <textarea id="ghFileContent" rows="4" placeholder="Содержимое файла..."></textarea>
+          <button id="ghFileBtn" type="button">Создать/обновить файл</button>
           <div id="ghOut" class="small" style="margin-top:8px;white-space:pre-wrap;"></div>
         </aside>
       </div>
@@ -153,10 +161,16 @@
       const exportBtn = document.getElementById("exportBtn");
       const ghStatusBtn = document.getElementById("ghStatusBtn");
       const ghReposBtn = document.getElementById("ghReposBtn");
+      const ghPullsBtn = document.getElementById("ghPullsBtn");
       const ghIssueBtn = document.getElementById("ghIssueBtn");
       const ghRepo = document.getElementById("ghRepo");
       const ghIssueTitle = document.getElementById("ghIssueTitle");
       const ghIssueBody = document.getElementById("ghIssueBody");
+      const ghFilePath = document.getElementById("ghFilePath");
+      const ghFileBranch = document.getElementById("ghFileBranch");
+      const ghFileMessage = document.getElementById("ghFileMessage");
+      const ghFileContent = document.getElementById("ghFileContent");
+      const ghFileBtn = document.getElementById("ghFileBtn");
       const ghOut = document.getElementById("ghOut");
       const sessionId = localStorage.getItem("aksi_session") || crypto.randomUUID();
       localStorage.setItem("aksi_session", sessionId);
@@ -385,6 +399,52 @@
           ghOut.textContent = `Issue создан: #${data.number}\n${data.html_url}`;
         } catch (e) {
           ghOut.textContent = `Ошибка создания issue: ${e.message}`;
+        }
+      });
+
+      ghPullsBtn.addEventListener("click", async () => {
+        ghOut.textContent = "Загружаю открытые PR...";
+        try {
+          const { owner, repo } = parseOwnerRepo(ghRepo.value);
+          const res = await fetch("/api/github/pulls", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ owner, repo }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Ошибка загрузки PR");
+          const lines = data.map((pr) => `#${pr.number} ${pr.title} — ${pr.html_url}`);
+          ghOut.textContent = lines.length ? lines.join("\n") : "Открытых PR не найдено.";
+        } catch (e) {
+          ghOut.textContent = `Ошибка загрузки PR: ${e.message}`;
+        }
+      });
+
+      ghFileBtn.addEventListener("click", async () => {
+        ghOut.textContent = "Сохраняю файл в GitHub...";
+        try {
+          const { owner, repo } = parseOwnerRepo(ghRepo.value);
+          const path = ghFilePath.value.trim();
+          const message = ghFileMessage.value.trim();
+          if (!path) throw new Error("Укажи путь файла");
+          if (!message) throw new Error("Укажи commit message");
+          const res = await fetch("/api/github/file", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              owner,
+              repo,
+              path,
+              content: ghFileContent.value,
+              message,
+              branch: ghFileBranch.value.trim() || "main",
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Ошибка сохранения файла");
+          ghOut.textContent = `Файл сохранён: ${data.path}\ncommit: ${data.commit_sha}`;
+        } catch (e) {
+          ghOut.textContent = `Ошибка файлового режима: ${e.message}`;
         }
       });
 

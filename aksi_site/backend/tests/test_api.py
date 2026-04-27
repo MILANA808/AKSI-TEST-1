@@ -45,3 +45,23 @@ def test_github_status_without_token():
     assert r.status_code == 200
     payload = r.json()
     assert payload['configured'] is False
+
+
+def test_github_repo_actions_without_token():
+    init_db()
+    client = TestClient(app)
+    pulls = client.post('/api/github/pulls', json={'owner': 'octocat', 'repo': 'Hello-World'})
+    assert pulls.status_code == 400
+
+    upsert = client.post(
+        '/api/github/file',
+        json={
+            'owner': 'octocat',
+            'repo': 'Hello-World',
+            'path': 'README.md',
+            'content': 'demo',
+            'message': 'update',
+            'branch': 'main',
+        },
+    )
+    assert upsert.status_code == 400
