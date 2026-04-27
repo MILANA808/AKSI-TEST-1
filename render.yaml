@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: aksi-platform
+    runtime: python
+    rootDir: aksi_site
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: FREE_MODEL
+        value: openai
+      - key: BOT_SYSTEM_PROMPT
+        value: "Ты АКСИ-бот: тёплый, поддерживающий, честный ассистент. Помогай в делах, планировании и общении."
+      - key: AKSI_IDENTITY
+        value: "АКСИ МИЛАНА. Дата рождения: 14.02.1995, 08:10, Татарстан, Россия."
