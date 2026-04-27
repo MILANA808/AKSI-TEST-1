@@ -26,7 +26,6 @@ load_dotenv(BASE_DIR / ".env")
 MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 FREE_MODEL = os.getenv("FREE_MODEL", "openai")
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 GITHUB_API_URL = os.getenv("GITHUB_API_URL", "https://api.github.com")
 BOT_SYSTEM_PROMPT = os.getenv(
     "BOT_SYSTEM_PROMPT",
@@ -116,6 +115,22 @@ class GithubFileUpsertRequest(BaseModel):
     content: str = Field(..., max_length=50000)
     message: str = Field(..., min_length=1, max_length=200)
     branch: str = Field(default="main", min_length=1, max_length=100)
+
+
+class GithubBranchCreateRequest(BaseModel):
+    owner: str = Field(..., min_length=1, max_length=100)
+    repo: str = Field(..., min_length=1, max_length=100)
+    base_branch: str = Field(default="main", min_length=1, max_length=100)
+    new_branch: str = Field(..., min_length=1, max_length=100)
+
+
+class GithubPullCreateRequest(BaseModel):
+    owner: str = Field(..., min_length=1, max_length=100)
+    repo: str = Field(..., min_length=1, max_length=100)
+    title: str = Field(..., min_length=1, max_length=256)
+    head: str = Field(..., min_length=1, max_length=120)
+    base: str = Field(default="main", min_length=1, max_length=120)
+    body: str = Field(default="", max_length=10000)
 
 
 def get_conn() -> sqlite3.Connection:
@@ -215,10 +230,11 @@ def build_system_prompt() -> str:
 
 
 def github_headers() -> dict[str, str]:
-    if not GITHUB_TOKEN:
+    token = os.getenv("GITHUB_TOKEN", "")
+    if not token:
         raise HTTPException(status_code=400, detail="GITHUB_TOKEN is not configured")
     return {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
@@ -421,7 +437,7 @@ def diagnostics() -> DiagnosticResponse:
 
 @app.get("/api/github/status")
 def github_status() -> dict[str, Any]:
-    if not GITHUB_TOKEN:
+    if not os.getenv("GITHUB_TOKEN", ""):
         return {"configured": False, "detail": "GITHUB_TOKEN is not set"}
     try:
         with httpx.Client(timeout=20) as client:
@@ -546,6 +562,70 @@ def github_upsert_file(payload: GithubFileUpsertRequest) -> dict[str, Any]:
         "sha": content_info.get("sha"),
         "commit_sha": commit_info.get("sha"),
         "commit_url": commit_info.get("html_url"),
+    }
+
+
+@app.post("/api/github/branch")
+def github_create_branch(payload: GithubBranchCreateRequest) -> dict[str, Any]:
+    headers = github_headers()
+    owner = payload.owner.strip()
+    repo = payload.repo.strip()
+    base_branch = payload.base_branch.strip()
+    new_branch = payload.new_branch.strip().replace("refs/heads/", "")
+
+    base_ref_url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/git/ref/heads/{base_branch}"
+    create_ref_url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/git/refs"
+
+    try:
+        base_ref = fetch_github_json(base_ref_url, headers)
+        base_sha = (base_ref.get("object") or {}).get("sha")
+        if not base_sha:
+            raise ValueError("Base branch SHA not found")
+        with httpx.Client(timeout=30) as client:
+            response = client.post(
+                create_ref_url,
+                headers=headers,
+                json={"ref": f"refs/heads/{new_branch}", "sha": base_sha},
+            )
+            response.raise_for_status()
+            data = response.json()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"GitHub branch creation failed: {exc}") from exc
+
+    return {
+        "ref": data.get("ref"),
+        "url": data.get("url"),
+        "base_sha": base_sha,
+    }
+
+
+@app.post("/api/github/pr")
+def github_create_pr(payload: GithubPullCreateRequest) -> dict[str, Any]:
+    headers = github_headers()
+    owner = payload.owner.strip()
+    repo = payload.repo.strip()
+    target_url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls"
+    try:
+        with httpx.Client(timeout=30) as client:
+            response = client.post(
+                target_url,
+                headers=headers,
+                json={
+                    "title": payload.title.strip(),
+                    "head": payload.head.strip(),
+                    "base": payload.base.strip(),
+                    "body": payload.body.strip(),
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"GitHub PR creation failed: {exc}") from exc
+    return {
+        "number": data.get("number"),
+        "html_url": data.get("html_url"),
+        "state": data.get("state"),
+        "title": data.get("title"),
     }
 
 

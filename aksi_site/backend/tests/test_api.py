@@ -65,3 +65,22 @@ def test_github_repo_actions_without_token():
         },
     )
     assert upsert.status_code == 400
+
+    branch = client.post(
+        '/api/github/branch',
+        json={'owner': 'octocat', 'repo': 'Hello-World', 'base_branch': 'main', 'new_branch': 'feat/test'},
+    )
+    assert branch.status_code == 400
+
+    pr = client.post(
+        '/api/github/pr',
+        json={
+            'owner': 'octocat',
+            'repo': 'Hello-World',
+            'title': 'Test PR',
+            'head': 'feat/test',
+            'base': 'main',
+            'body': 'test',
+        },
+    )
+    assert pr.status_code == 400

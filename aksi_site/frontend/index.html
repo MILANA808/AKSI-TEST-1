@@ -139,6 +139,14 @@
           <input id="ghFileMessage" placeholder="Commit message" />
           <textarea id="ghFileContent" rows="4" placeholder="Содержимое файла..."></textarea>
           <button id="ghFileBtn" type="button">Создать/обновить файл</button>
+          <hr style="border-color:#263668;margin:12px 0;"/>
+          <h2>GitHub ветка + PR</h2>
+          <input id="ghBaseBranch" placeholder="Base branch" value="main" />
+          <input id="ghNewBranch" placeholder="Новая ветка (например aksi-update-1)" />
+          <button id="ghBranchBtn" type="button">Создать ветку</button>
+          <input id="ghPrTitle" placeholder="Заголовок PR" />
+          <textarea id="ghPrBody" rows="3" placeholder="Описание PR..."></textarea>
+          <button id="ghPrBtn" type="button">Создать PR</button>
           <div id="ghOut" class="small" style="margin-top:8px;white-space:pre-wrap;"></div>
         </aside>
       </div>
@@ -171,6 +179,12 @@
       const ghFileMessage = document.getElementById("ghFileMessage");
       const ghFileContent = document.getElementById("ghFileContent");
       const ghFileBtn = document.getElementById("ghFileBtn");
+      const ghBaseBranch = document.getElementById("ghBaseBranch");
+      const ghNewBranch = document.getElementById("ghNewBranch");
+      const ghBranchBtn = document.getElementById("ghBranchBtn");
+      const ghPrTitle = document.getElementById("ghPrTitle");
+      const ghPrBody = document.getElementById("ghPrBody");
+      const ghPrBtn = document.getElementById("ghPrBtn");
       const ghOut = document.getElementById("ghOut");
       const sessionId = localStorage.getItem("aksi_session") || crypto.randomUUID();
       localStorage.setItem("aksi_session", sessionId);
@@ -314,7 +328,6 @@
         });
         noteText.value = "";
         loadNotes();
-      loadTodos();
       });
 
       form.addEventListener("submit", async (e) => {
@@ -445,6 +458,49 @@
           ghOut.textContent = `Файл сохранён: ${data.path}\ncommit: ${data.commit_sha}`;
         } catch (e) {
           ghOut.textContent = `Ошибка файлового режима: ${e.message}`;
+        }
+      });
+
+      ghBranchBtn.addEventListener("click", async () => {
+        ghOut.textContent = "Создаю ветку...";
+        try {
+          const { owner, repo } = parseOwnerRepo(ghRepo.value);
+          const baseBranch = ghBaseBranch.value.trim() || "main";
+          const newBranch = ghNewBranch.value.trim();
+          if (!newBranch) throw new Error("Укажи имя новой ветки");
+          const res = await fetch("/api/github/branch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ owner, repo, base_branch: baseBranch, new_branch: newBranch }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Ошибка создания ветки");
+          ghFileBranch.value = newBranch;
+          ghOut.textContent = `Ветка создана: ${data.ref}`;
+        } catch (e) {
+          ghOut.textContent = `Ошибка создания ветки: ${e.message}`;
+        }
+      });
+
+      ghPrBtn.addEventListener("click", async () => {
+        ghOut.textContent = "Создаю PR...";
+        try {
+          const { owner, repo } = parseOwnerRepo(ghRepo.value);
+          const title = ghPrTitle.value.trim();
+          const head = (ghFileBranch.value || "").trim();
+          const base = (ghBaseBranch.value || "main").trim();
+          if (!title) throw new Error("Укажи заголовок PR");
+          if (!head) throw new Error("Укажи head ветку");
+          const res = await fetch("/api/github/pr", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ owner, repo, title, head, base, body: ghPrBody.value.trim() }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || "Ошибка создания PR");
+          ghOut.textContent = `PR создан: #${data.number}\n${data.html_url}`;
+        } catch (e) {
+          ghOut.textContent = `Ошибка создания PR: ${e.message}`;
         }
       });
 
