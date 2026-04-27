@@ -1,0 +1,7 @@
+# Python
+__pycache__/
+*.pyc
+
+# Local runtime artifacts
+aksi_site/.venv/
+aksi_site/aksi.db
