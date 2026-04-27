@@ -161,14 +161,24 @@
 
       const renderNote = (note) => {
         const li = document.createElement("li");
-        li.innerHTML = `
-          <div class="row">
-            <strong>${note.text}</strong>
-            <button data-id="${note.id}">Удалить</button>
-          </div>
-          <div class="small">${new Date(note.created_at).toLocaleString()}</div>
-        `;
-        li.querySelector("button").addEventListener("click", async () => {
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const strong = document.createElement("strong");
+        strong.textContent = note.text;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.dataset.id = note.id;
+        deleteButton.textContent = "Удалить";
+
+        row.append(strong, deleteButton);
+
+        const small = document.createElement("div");
+        small.className = "small";
+        small.textContent = new Date(note.created_at).toLocaleString();
+
+        li.append(row, small);
+        deleteButton.addEventListener("click", async () => {
           await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
           loadNotes();
       loadTodos();
