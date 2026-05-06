@@ -3,113 +3,125 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AKSI — Полный рабочий сайт</title>
+    <title>AKSI — рабочий кабинет</title>
     <style>
-      :root { color-scheme: dark; }
+      :root {
+        color-scheme: dark;
+        --bg: #0a0d1b;
+        --panel: rgba(17, 22, 45, 0.95);
+        --line: #2a3b7d;
+        --accent: #4e7cff;
+        --good: #1f7353;
+        --warn: #bd7b21;
+        --text: #f2f4ff;
+        --muted: rgba(242, 244, 255, 0.76);
+      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         font-family: Inter, Arial, sans-serif;
-        background: radial-gradient(circle at top, #25305e 0%, #101322 45%, #0a0d1b 100%);
-        color: #f2f4ff;
+        background: radial-gradient(circle at top, #25305e 0%, #101322 45%, var(--bg) 100%);
+        color: var(--text);
       }
-      .page { max-width: 1100px; margin: 0 auto; padding: 20px; }
-      .grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 14px;
-      }
-      .card {
-        background: rgba(17, 22, 45, 0.95);
-        border: 1px solid #2a3b7d;
-        border-radius: 14px;
-        padding: 14px;
-      }
-      h1, h2 { margin: 0 0 10px 0; }
-      .muted { opacity: 0.8; font-size: 0.92rem; }
-      .pill {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 999px;
-        border: 1px solid #4562c7;
-        font-size: 12px;
-      }
-      #chat {
-        height: 56vh;
-        overflow-y: auto;
-        border: 1px solid #233166;
-        border-radius: 12px;
-        padding: 12px;
-        background: #0c1022;
-      }
-      .msg { margin: 8px 0; padding: 10px; border-radius: 10px; white-space: pre-wrap; }
-      .user { background: #23469e; }
-      .bot { background: #1f7353; }
+      .page { max-width: 1180px; margin: 0 auto; padding: 20px; }
+      .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); gap: 14px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: 0 18px 44px rgba(0,0,0,.2); }
+      h1, h2, h3 { margin: 0 0 10px 0; }
+      .muted { color: var(--muted); font-size: 0.94rem; }
+      .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid #4562c7; font-size: 12px; white-space: nowrap; }
+      .toolbar, .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+      .stack { display: grid; gap: 10px; }
+      #chat { height: 54vh; min-height: 360px; overflow-y: auto; border: 1px solid #233166; border-radius: 12px; padding: 12px; background: #0c1022; }
+      .msg { margin: 8px 0; padding: 10px 12px; border-radius: 12px; white-space: pre-wrap; line-height: 1.42; }
+      .msg .meta { display: block; margin-bottom: 4px; font-size: 11px; opacity: .68; }
+      .user { background: #23469e; margin-left: 10%; }
+      .assistant, .bot { background: var(--good); margin-right: 10%; }
+      .system { background: var(--warn); }
       form { display: flex; gap: 8px; margin-top: 10px; }
-      input, textarea {
-        flex: 1;
-        border: 1px solid #2e4492;
-        background: #111831;
-        color: #fff;
-        border-radius: 10px;
-        padding: 10px;
-      }
-      button {
-        border: 0;
-        border-radius: 10px;
-        padding: 10px 14px;
-        background: #4e7cff;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-      }
+      input, textarea { width: 100%; border: 1px solid #2e4492; background: #111831; color: #fff; border-radius: 10px; padding: 10px; }
+      textarea { resize: vertical; }
+      button, .button-link { border: 0; border-radius: 10px; padding: 10px 14px; background: var(--accent); color: white; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; }
+      button.secondary, .button-link.secondary { background: #25305e; border: 1px solid #3b4d94; }
+      button.danger { background: #9b2d3f; }
+      button:disabled { opacity: .55; cursor: not-allowed; }
       ul { margin: 10px 0 0 0; padding: 0; list-style: none; }
-      li {
-        background: #111831;
-        border: 1px solid #263668;
-        border-radius: 10px;
-        margin: 8px 0;
-        padding: 10px;
-      }
-      .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
-      .small { font-size: 12px; opacity: .75; }
+      li { background: #111831; border: 1px solid #263668; border-radius: 12px; margin: 8px 0; padding: 10px; }
+      .small { font-size: 12px; color: var(--muted); }
+      .note-text { margin: 0 0 8px 0; white-space: pre-wrap; }
+      .status { min-height: 18px; }
+      @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .user, .assistant, .bot { margin-left: 0; margin-right: 0; } form { flex-wrap: wrap; } }
     </style>
   </head>
   <body>
-    <div class="page">
-      <div class="card" style="margin-bottom: 14px;">
-        <h1>AKSI — прямой доступ восстановлен</h1>
-        <div class="row">
-          <div class="muted">Чат + память + заметки. Работает в OpenAI-режиме или бесплатном free-режиме с интернет-контекстом.</div>
+    <div class="page stack">
+      <header class="card">
+        <div class="toolbar">
+          <div>
+            <h1>AKSI — кабинет Альфии</h1>
+            <div class="muted">Чат с памятью, web-контекст, заметки, предназначение, диагностика, экспорт и проверяемая подпись.</div>
+          </div>
           <span id="mode" class="pill">mode: loading...</span>
         </div>
-      </div>
+      </header>
 
       <div class="grid">
-        <section class="card">
-          <h2>Чат с АКСИ</h2>
-          <div id="chat"></div>
+        <section class="card stack">
+          <div class="toolbar">
+            <h2>Чат с АКСИ</h2>
+            <div class="toolbar">
+              <button id="reloadHistory" type="button" class="secondary">История</button>
+              <button id="clearChat" type="button" class="danger">Очистить чат</button>
+            </div>
+          </div>
+          <div id="chat" aria-live="polite"></div>
           <form id="chatForm">
-            <input id="message" placeholder="Напиши АКСИ сообщение..." required />
+            <input id="message" placeholder="Напиши АКСИ сообщение..." maxlength="4000" required />
             <label class="small" style="display:flex;align-items:center;gap:6px;">
               <input id="useWeb" type="checkbox" checked style="width:auto;"/> web
             </label>
-            <button type="submit">Отправить</button>
+            <button id="sendBtn" type="submit">Отправить</button>
           </form>
+          <div id="chatStatus" class="small status"></div>
         </section>
 
-        <aside class="card">
-          <h2>Заметки и фокус</h2>
-          <p class="muted">Личный блок для задач, мыслей и планов.</p>
-          <form id="noteForm">
-            <textarea id="noteText" rows="3" placeholder="Новая заметка..." required></textarea>
-            <button type="submit">Добавить</button>
-          </form>
-          <ul id="notes"></ul>
+        <aside class="card stack">
+          <section class="stack">
+            <h2>Предназначение</h2>
+            <p class="muted">Персональная карта для Башировой Альфии Ринатовны: 14.02.1995, 08:10, Россия, Татарстан, Нурлат.</p>
+            <button id="purposeBtn" type="button" class="secondary">Открыть карту</button>
+            <div id="purposeOut" class="small" style="white-space:pre-wrap;"></div>
+          </section>
 
-          <hr style="border-color:#263668;margin:12px 0;"/>
-          <h2>Диагностика доступа</h2>
-          <button id="diagBtn" type="button">Проверить доступы</button>
-          <div id="diagOut" class="small" style="margin-top:8px;white-space:pre-wrap;"></div>
+          <hr style="border-color:#263668;width:100%;"/>
+          <section>
+            <div class="toolbar">
+              <h2>Заметки и фокус</h2>
+              <a class="button-link secondary" href="/api/export" download="aksi-export.json">Экспорт</a>
+            </div>
+            <p class="muted">Личный блок для задач, мыслей и планов. Можно искать, редактировать и удалять.</p>
+            <form id="noteForm">
+              <textarea id="noteText" rows="3" placeholder="Новая заметка..." maxlength="1000" required></textarea>
+              <button type="submit">Добавить</button>
+            </form>
+            <input id="noteSearch" placeholder="Поиск по заметкам..." style="margin-top:10px;" />
+            <ul id="notes"></ul>
+            <div id="notesStatus" class="small status"></div>
+          </section>
+
+          <hr style="border-color:#263668;width:100%;"/>
+          <section class="stack">
+            <h2>Правда и подпись АКСИ</h2>
+            <p class="muted">Показывает проверяемый self-manifest: SHA-256 отпечаток всегда, HMAC-подпись — если задан `AKSI_SIGNING_SECRET`.</p>
+            <button id="identityBtn" type="button" class="secondary">Показать подпись</button>
+            <div id="identityOut" class="small" style="white-space:pre-wrap;"></div>
+          </section>
+
+          <hr style="border-color:#263668;width:100%;"/>
+          <section class="stack">
+            <h2>Диагностика доступа</h2>
+            <button id="diagBtn" type="button">Проверить доступы</button>
+            <div id="diagOut" class="small" style="white-space:pre-wrap;"></div>
+          </section>
         </aside>
       </div>
     </div>
@@ -118,68 +130,139 @@
       const chat = document.getElementById("chat");
       const form = document.getElementById("chatForm");
       const input = document.getElementById("message");
+      const sendBtn = document.getElementById("sendBtn");
       const modePill = document.getElementById("mode");
       const useWeb = document.getElementById("useWeb");
       const notesList = document.getElementById("notes");
       const noteForm = document.getElementById("noteForm");
       const noteText = document.getElementById("noteText");
+      const noteSearch = document.getElementById("noteSearch");
       const diagBtn = document.getElementById("diagBtn");
       const diagOut = document.getElementById("diagOut");
+      const identityBtn = document.getElementById("identityBtn");
+      const identityOut = document.getElementById("identityOut");
+      const purposeBtn = document.getElementById("purposeBtn");
+      const purposeOut = document.getElementById("purposeOut");
+      const chatStatus = document.getElementById("chatStatus");
+      const notesStatus = document.getElementById("notesStatus");
+      const reloadHistoryBtn = document.getElementById("reloadHistory");
+      const clearChatBtn = document.getElementById("clearChat");
       const sessionId = localStorage.getItem("aksi_session") || crypto.randomUUID();
       localStorage.setItem("aksi_session", sessionId);
 
-      const addMessage = (text, cls) => {
+      const api = async (url, options = {}) => {
+        const res = await fetch(url, options);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || "Ошибка сервера");
+        return data;
+      };
+
+      const addMessage = (text, role = "assistant", createdAt = new Date().toISOString()) => {
         const div = document.createElement("div");
-        div.className = `msg ${cls}`;
-        div.textContent = text;
+        div.className = `msg ${role}`;
+        const meta = document.createElement("span");
+        meta.className = "meta";
+        meta.textContent = `${role} · ${new Date(createdAt).toLocaleString()}`;
+        const body = document.createElement("span");
+        body.textContent = text;
+        div.append(meta, body);
         chat.appendChild(div);
         chat.scrollTop = chat.scrollHeight;
       };
 
+      const setMode = (mode, model) => { modePill.textContent = `mode: ${mode} (${model})`; };
+
       const loadConfig = async () => {
         try {
-          const res = await fetch("/api/config");
-          const cfg = await res.json();
-          modePill.textContent = `mode: ${cfg.mode} (${cfg.model})`;
+          const cfg = await api("/api/config");
+          setMode(cfg.mode, cfg.model);
         } catch {
           modePill.textContent = "mode: unavailable";
         }
       };
 
+      const loadHistory = async () => {
+        chat.innerHTML = "";
+        const messages = await api(`/api/chat/history?session_id=${encodeURIComponent(sessionId)}&limit=200`);
+        if (messages.length === 0) {
+          addMessage("АКСИ онлайн. Я держу карту Альфии: предназначение, память, фокус и заметки.", "system");
+          return;
+        }
+        messages.forEach((message) => addMessage(message.content, message.role, message.created_at));
+      };
+
       const renderNote = (note) => {
         const li = document.createElement("li");
-        li.innerHTML = `
-          <div class="row">
-            <strong>${note.text}</strong>
-            <button data-id="${note.id}">Удалить</button>
-          </div>
-          <div class="small">${new Date(note.created_at).toLocaleString()}</div>
-        `;
-        li.querySelector("button").addEventListener("click", async () => {
-          await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
+        const text = document.createElement("p");
+        text.className = "note-text";
+        text.textContent = note.text;
+
+        const meta = document.createElement("div");
+        meta.className = "small";
+        meta.textContent = new Date(note.created_at).toLocaleString();
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "secondary";
+        editBtn.textContent = "Изменить";
+        editBtn.addEventListener("click", async () => {
+          const updated = prompt("Обновить заметку", note.text);
+          if (updated === null || !updated.trim()) return;
+          await api(`/api/notes/${note.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: updated.trim() }),
+          });
           loadNotes();
         });
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "danger";
+        deleteBtn.textContent = "Удалить";
+        deleteBtn.addEventListener("click", async () => {
+          await api(`/api/notes/${note.id}`, { method: "DELETE" });
+          loadNotes();
+        });
+
+        const controls = document.createElement("div");
+        controls.className = "toolbar";
+        controls.append(meta, editBtn, deleteBtn);
+        li.append(text, controls);
         notesList.appendChild(li);
       };
 
       const loadNotes = async () => {
-        notesList.innerHTML = "";
-        const res = await fetch("/api/notes");
-        const notes = await res.json();
-        notes.forEach(renderNote);
+        notesStatus.textContent = "Загружаю заметки...";
+        try {
+          const q = noteSearch.value.trim();
+          const notes = await api(`/api/notes${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+          notesList.innerHTML = "";
+          notes.forEach(renderNote);
+          notesStatus.textContent = notes.length ? `Заметок: ${notes.length}` : "Заметок пока нет.";
+        } catch (err) {
+          notesStatus.textContent = `Ошибка заметок: ${err.message}`;
+        }
       };
 
       noteForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const text = noteText.value.trim();
         if (!text) return;
-        await fetch("/api/notes", {
+        await api("/api/notes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text }),
         });
         noteText.value = "";
         loadNotes();
+      });
+
+      noteSearch.addEventListener("input", () => loadNotes());
+      reloadHistoryBtn.addEventListener("click", () => loadHistory());
+      clearChatBtn.addEventListener("click", async () => {
+        await api(`/api/chat/history/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
+        await loadHistory();
       });
 
       form.addEventListener("submit", async (e) => {
@@ -190,46 +273,88 @@
         addMessage(message, "user");
         input.value = "";
         input.disabled = true;
+        sendBtn.disabled = true;
+        chatStatus.textContent = "АКСИ думает...";
 
         try {
-          const res = await fetch("/api/chat", {
+          const data = await api("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message, session_id: sessionId, use_web: useWeb.checked }),
           });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.detail || "Ошибка сервера");
-          addMessage(data.reply, "bot");
-          modePill.textContent = `mode: ${data.mode} (${data.model})`;
+          addMessage(data.reply, "assistant");
+          setMode(data.mode, data.model);
+          chatStatus.textContent = "Ответ сохранён в истории.";
         } catch (err) {
-          addMessage(`Ошибка: ${err.message}`, "bot");
+          addMessage(`Ошибка: ${err.message}`, "system");
+          chatStatus.textContent = "Не удалось получить ответ.";
         } finally {
           input.disabled = false;
+          sendBtn.disabled = false;
           input.focus();
         }
       });
 
+      purposeBtn.addEventListener("click", async () => {
+        purposeOut.textContent = "Загружаю карту предназначения...";
+        try {
+          const data = await api("/api/purpose");
+          purposeOut.textContent = [
+            `${data.owner.full_name}`,
+            `${data.owner.birth_date} ${data.owner.birth_time} · ${data.owner.birth_place}`,
+            `Архетип: ${data.archetype}`,
+            `Число пути: ${data.life_path}`,
+            `Миссия: ${data.mission}`,
+            "Опоры:",
+            ...data.pillars.map((item) => `- ${item}`),
+            "Ежедневный протокол:",
+            ...data.daily_protocol.map((item) => `- ${item}`),
+            "Фокус-вопросы:",
+            ...data.focus_questions.map((item) => `- ${item}`),
+          ].join("\n");
+        } catch (e) {
+          purposeOut.textContent = `Ошибка карты: ${e.message}`;
+        }
+      });
+
+      identityBtn.addEventListener("click", async () => {
+        identityOut.textContent = "Загружаю подпись...";
+        try {
+          const data = await api("/api/identity");
+          identityOut.textContent = [
+            `algorithm: ${data.signature_algorithm}`,
+            `verifiable: ${data.signature_verifiable}`,
+            `fingerprint_sha256: ${data.fingerprint_sha256}`,
+            `signature: ${data.signature}`,
+            `code_fingerprint_sha256: ${data.manifest.code_fingerprint_sha256}`,
+            "truth:",
+            ...data.manifest.truth.map((item) => `- ${item}`),
+          ].join("\n");
+        } catch (e) {
+          identityOut.textContent = `Ошибка подписи: ${e.message}`;
+        }
+      });
 
       diagBtn.addEventListener("click", async () => {
         diagOut.textContent = "Проверяю...";
         try {
-          const res = await fetch("/api/diagnostics");
-          const d = await res.json();
+          const d = await api("/api/diagnostics");
           diagOut.textContent = [
             `mode: ${d.mode}`,
             `openai_key_configured: ${d.openai_key_configured}`,
             `free_provider_reachable: ${d.free_provider_reachable}`,
             `web_search_reachable: ${d.web_search_reachable}`,
-            `details: ${JSON.stringify(d.details)}`
+            `details: ${JSON.stringify(d.details, null, 2)}`,
           ].join("\n");
         } catch (e) {
           diagOut.textContent = `Ошибка диагностики: ${e.message}`;
         }
       });
 
-      addMessage("АКСИ онлайн. Прямой доступ восстановлен — я готова отвечать в free/openai режиме.", "bot");
       loadConfig();
+      loadHistory().catch((err) => addMessage(`История недоступна: ${err.message}`, "system"));
       loadNotes();
+      purposeBtn.click();
     </script>
   </body>
 </html>
