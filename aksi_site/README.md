@@ -9,7 +9,11 @@
 
 Также включены:
 - память чата по `session_id`;
-- заметки (создание/удаление);
+- история и очистка чата;
+- заметки (создание/поиск/редактирование/удаление);
+- JSON-экспорт данных;
+- персональная карта предназначения для Башировой Альфии Ринатовны (`GET /api/purpose`);
+- self-manifest и криптографический отпечаток/подпись АКСИ (`GET /api/identity`);
 - SQLite-хранилище (`aksi_site/aksi.db`).
 
 ## Запуск
@@ -29,14 +33,20 @@ uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
 
 - `GET /health`
 - `GET /api/config`
+- `GET /api/identity`
+- `GET /api/purpose`
 - `POST /api/chat` (`use_web=true|false`)
-- `GET /api/notes`
+- `GET /api/notes?q=`
 - `POST /api/notes`
+- `PATCH /api/notes/{id}`
 - `DELETE /api/notes/{id}`
+- `GET /api/chat/history?session_id=`
+- `DELETE /api/chat/history/{session_id}`
+- `GET /api/export`
 
 ## Важно
 
-Free mode не требует ключа, но зависит от доступности бесплатного внешнего провайдера.
+Free mode не требует ключа, но зависит от доступности бесплатного внешнего провайдера. Офлайн-режим отключён: если провайдер недоступен, API возвращает ошибку.
 
 
 ## Диагностика
